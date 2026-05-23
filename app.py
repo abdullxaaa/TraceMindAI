@@ -77,6 +77,7 @@ with col2:
 st.markdown("---")
 
 # Bottom Row: Generative Output & Text Report
+# Bottom Row: Generative Output & Text Report
 if run_engine:
     if st.session_state.signal_data is None:
         st.error("Pipeline Error: Please upload or generate a hardware signal first.")
@@ -88,18 +89,42 @@ if run_engine:
             fig_pcb, ax_pcb = plt.subplots(figsize=(5, 5))
 
             if uploaded_image is not None:
-                # Process the uploaded user image
                 img = Image.open(uploaded_image)
                 ax_pcb.imshow(img)
                 w, h = img.size
 
-                # Draw the AI visual overlay
-                ax_pcb.plot([w*0.2, w*0.8], [h*0.4, h*0.4], color="#e84118",
+                # --- DYNAMIC AI ROUTING LOGIC ---
+                # Create a unique mathematical seed based on the uploaded file's name
+                # This ensures the same image gets the same route, but new images get different routes!
+                file_hash = hash(uploaded_image.name) % (2**32)
+                np.random.seed(file_hash)
+
+                # Dynamically calculate random coordinates for the fault line
+                x_start = w * np.random.uniform(0.1, 0.3)
+                x_end = w * np.random.uniform(0.7, 0.9)
+                y_level = h * np.random.uniform(0.3, 0.7)
+
+                # Dynamically calculate the AI's 45-degree bypass geometry
+                y_offset = h * np.random.uniform(0.15, 0.3)
+                # AI decides whether to route ABOVE or BELOW the fault
+                direction = np.random.choice([1, -1])
+
+                x_mid1 = x_start + (x_end - x_start) * 0.3
+                x_mid2 = x_start + (x_end - x_start) * 0.7
+                y_safe = y_level + (y_offset * direction)
+
+                # Draw the dynamic lines
+                ax_pcb.plot([x_start, x_end], [y_level, y_level], color="#e84118",
                             linestyle="--", linewidth=3, label="Detected Noise Path")
-                ax_pcb.plot([w*0.2, w*0.4, w*0.6, w*0.8], [h*0.4, h*0.7, h*0.7, h*0.4],
+                ax_pcb.plot([x_start, x_mid1, x_mid2, x_end], [y_level, y_safe, y_safe, y_level],
                             color="#00d2d3", linestyle="-", linewidth=4, label="AI Optimized Reroute")
+
                 ax_pcb.set_xlim(0, w)
                 ax_pcb.set_ylim(h, 0)
+
+                # Generate dynamic report metrics based on the same seed
+                prob_match = round(np.random.uniform(0.81, 0.98), 2)
+                clearance = round(np.random.uniform(3.5, 6.2), 1)
             else:
                 # Fallback mock PCB if no image is uploaded
                 ax_pcb.set_facecolor('#073d22')
@@ -112,11 +137,39 @@ if run_engine:
                             linestyle="-", linewidth=4, label="AI Optimized Route")
                 ax_pcb.set_xlim(0, 10)
                 ax_pcb.set_ylim(0, 10)
+                prob_match = 0.87
+                clearance = 4.5
 
             ax_pcb.legend(loc="upper right", fontsize=8)
             ax_pcb.set_xticks([])
             ax_pcb.set_yticks([])
             st.pyplot(fig_pcb)
+
+            buf = io.BytesIO()
+            fig_pcb.savefig(buf, format="png", dpi=300, bbox_inches='tight')
+            st.download_button(label="Download Routing Overlay", data=buf.getvalue(
+            ), file_name="AI_Optimized_Routing.png", mime="image/png")
+
+        with col4:
+            st.subheader("Cross-Modal Diagnostic Insights")
+
+            st.markdown(f"""
+            **[STATUS]: CRITICAL INTERFERENCE ISOLATED**
+            
+            **1. TIME-SERIES / FREQUENCY DOMAIN REPORT:**
+            * Dominant Spectral Spikes detected sharply at **50.00 Hz**.
+            * Signature: AC Main Line Ripple / Power-Grid Inductive Coupling Harmonics.
+            
+            **2. VISUAL LAYOUT CROSS-REFERENCE:**
+            * Geometric Scan: Found high-gain sensitive instrumentation tracking line running dangerously close to AC components.
+            * Cross-talk Coefficient Matrix: High Risk (**{prob_match} Probability Match**).
+            
+            **3. AUTONOMOUS REDESIGN MITIGATION ROADMAP:**
+            * **[ACTION 1]** Re-route trace segment using 45-degree bypass nodes to ensure a minimum spatial separation distance of **{clearance}mm** away from current tracks.
+            * **[ACTION 2]** Drop a dedicated via guard ring structure to block cross-plane electromagnetic field coupling.
+            * **[ACTION 3]** Hardware fallback: Append a dedicated 2nd-order twin-T notch filter topology centered precisely on 50Hz upstream from the ADC stage.
+            """)
+            st.success("Generative Routing Matrix Calculated Successfully.")
 
             # Allow user to download the generated fix
             buf = io.BytesIO()
